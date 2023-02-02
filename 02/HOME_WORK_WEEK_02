@@ -1,0 +1,68 @@
+
+DE camp 2023 homework week 02
+
+- Question 1. Load January 2020 data
+  Using the etl_web_to_gcs.py flow that loads taxi data into GCS as a guide,
+  create a flow that loads the green taxi CSV dataset for January 2020 into GCS and run it.
+  Look at the logs to find out how many rows the dataset has.
+  How many rows does that dataset have?
+
+  => change variables in cat etl_web_to_gcs.py
+     color = "green"
+     year = 2020
+
+  $python etl_web_to_gcs.py
+  13:51:13.701 | INFO    | Task run 'write_gcs-1145c921-0' - Uploading from Path('data/green/green_tripdata_2020-01.parquet')
+                           to the bucket 'dtc_data_lake_mlops-zoom-camp-2023' path 'data/green/green_tripdata_2020-01.parquet'
+  13:51:11.509 | INFO    | Task run 'clean-b9fd7e03-0' - rows: 447770
+
+  => 447770
+
+- Question 2. Scheduling with Cron
+
+  Cron is a common scheduling specification for workflows.
+  Using the flow in etl_web_to_gcs.py, create a deployment to run on the first of every month at 5am UTC.
+  What’s the cron schedule for that?
+
+  cron schedule format
+
+ * * * * *  command to execute
+ ┬ ┬ ┬ ┬ ┬
+ │ │ │ │ │
+ │ │ │ │ │
+ │ │ │ │ └───── day of week (0 - 7) (0 to 6 are Sunday to Saturday, or use names; 7 is Sunday, the same as 0)
+ │ │ │ └────────── month (1 - 12)
+ │ │ └─────────────── day of month (1 - 31)
+ │ └──────────────────── hour (0 - 23)
+ └───────────────────────── min (0 - 59)
+
+  => 0 5 1 * *
+
+  $ prefect deployment build ./etl_web_to_gcs_params.py:etl_parent_flow -n "ETL with cron: first every month at 5am" --cron "0 5 1 * *" -a
+  Deployment 'etl-parent-flow/ETL with cron: first every month at 5am' successfully created with id 'ff9984d7-1bd7-4b03-bd75-14452349143b'
+
+  web UI: Schedule
+          At 05:00 AM on day 1 of the month (UTC)
+
+
+- Question 3. Loading data to BigQuery
+
+  14:57:14.470 | INFO    | Task run 'extract_from_gcs-968e3b65-0' - Downloading blob named data/yellow/yellow_tripdata_2019-02.parquet from the dtc_data_lake_mlops-zoom-camp-2023 bucket to ../data/data/yellow/yellow_tripdata_2019-02.parquet
+  14:57:17.525 | INFO    | Task run 'transform-a7d916b4-0' - read rows: 7019375
+
+  14:57:42.327 | INFO    | Task run 'extract_from_gcs-968e3b65-0' - Downloading blob named data/yellow/yellow_tripdata_2019-03.parquet from the dtc_data_lake_mlops-zoom-camp-2023 bucket to ../data/data/yellow/yellow_tripdata_2019-03.parquet
+  14:57:45.589 | INFO    | Task run 'transform-a7d916b4-0' - read rows: 7832545
+
+  => 7019375 + 7832545 = 14851920
+
+  SELECT count(*) FROM `mlops-zoom-camp-2023.de_camp_dataset.rides`;
+  14851920
+
+
+- Question 4. Github Storage Block
+
+  => create GitHub Block on the web UI
+    - Name: etl-web-to-gcs-flow
+    - 
+
+   
