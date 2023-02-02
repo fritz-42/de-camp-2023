@@ -1,0 +1,104 @@
+
+Question 1. Knowing docker tags
+
+  $ docker build --help
+
+  - Which tag has the following text? - Write the image ID to the file
+
+    => --iidfile string          Write the image ID to the file
+
+Question 2. Understanding docker first run
+
+  $ docker run -it --entrypoint=bash python:3.9
+  root@34df8cf5841f:/# pip list
+  Package    Version
+  ---------- -------
+  pip        22.0.4
+  setuptools 58.1.0
+  wheel      0.38.4
+
+  => 3
+
+Question 3. Count records
+
+  $ docker run -it -e POSTGRES_USER="root" -e POSTGRES_PASSWORD="root" -e POSTGRES_DB="ny_taxi" -v "$(pwd)/ny-taxi-volume:/var/lib/postgresql/data" -p 5432:5432  postgres:13
+
+  $ URL=https://github.com/DataTalksClub/nyc-tlc-data/releases/download/green/green_tripdata_2019-01.csv.gz
+  $ python ingest_data.py --user=root --password=root --host=localhost --port=5432 --db=ny_taxi --table_name=yellow_taxi_trips  --url=${URL}
+
+  $ pgcli -h localhost -p 5432 -u root -d ny_taxi
+
+  > select count(*) from yellow_taxi_trips where lpep_dropoff_datetime::date = '2019-01-15' and lpep_pickup_datetime::date = '2019-01-15';
+
+  +-------+
+  | count |
+  |-------|
+  | 20530 |
+  +-------+
+
+  => 20530
+
+Question 4. Largest trip for each day
+
+  > select lpep_pickup_datetime, trip_distance from yellow_taxi_trips where trip_distance = (select MAX(trip_distance) from yellow_taxi_trips);
+
+  +----------------------+---------------+
+  | lpep_pickup_datetime | trip_distance |
+  |----------------------+---------------|
+  | 2019-01-15 19:27:58  | 117.99        |
+  +----------------------+---------------+
+
+  => 2019-01-15
+
+Question 5. The number of passengers
+
+  > select count(passenger_count) from  yellow_taxi_trips where lpep_pickup_datetime::date = '2019-01-01' and passenger_count = 2;
+  +-------+
+  | count |
+  |-------|
+  | 1282  |
+  +-------+
+
+  > select count(passenger_count) from  yellow_taxi_trips where lpep_pickup_datetime::date = '2019-01-01' and passenger_count = 3;
+  +-------+
+  | count |
+  |-------|
+  | 254   |
+  +-------+
+
+  => 2: 1282 ; 3: 254
+
+Question 6. Largest tip
+
+  - import taxi zones from https://s3.amazonaws.com/nyc-tlc/misc/taxi+_zone_lookup.csv
+
+  > select max(tip_amount) from yellow_taxi_trips where "PULocationID"=7;
+  +------+
+  | max  |
+  |------|
+  | 88.0 |
+  +------+
+  SELECT 1
+
+  > select "DOLocationID", tip_amount from yellow_taxi_trips where tip_amount=(SELECT MAX(tip_amount) from yellow_taxi_trips where "PULocationID"=7);
+  +--------------+------------+
+  | DOLocationID | tip_amount |
+  |--------------+------------|
+  | 146          | 88.0       |
+  +--------------+------------+
+
+  > select "DOLocationID", tip_amount from yellow_taxi_trips where tip_amount=(SELECT MAX(tip_amount) from yellow_taxi_trips where "PULocationID"=(SELECT "LocationID" from taxi_zones where "Zone" = 'Astoria') );
+  +--------------+------------+
+  | DOLocationID | tip_amount |
+  |--------------+------------|
+  | 146          | 88.0       |
+  +--------------+------------+
+
+  > select "Zone" from taxi_zones where "LocationID" = (select "DOLocationID" from yellow_taxi_trips where tip_amount=(SELECT MAX(tip_amount) from yellow_taxi_trips where "PULocationID"=(SELECT "LocationID" from taxi_zones where "Zone" = 'Astoria')));
+  +-------------------------------+
+  | Zone                          |
+  |-------------------------------|
+  | Long Island City/Queens Plaza |
+  +-------------------------------+
+
+  => Long Island City/Queens Plaza
