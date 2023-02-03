@@ -63,6 +63,46 @@ DE camp 2023 homework week 02
 
   => create GitHub Block on the web UI
     - Name: etl-web-to-gcs-flow
-    - 
+    - Repository: https://github.com/fritz-42/de-camp-2023/
+    
 
+  => create deployment using github_deploy.py
+
+    from prefect.deployments import Deployment
+    from prefect.filesystems import GitHub
+    from etl_web_to_gcs_params import etl_parent_flow
+
+    github_block = GitHub.load("etl-web-to-gcs-flow")
+
+    github_dep = Deployment.build_from_flow(
+               flow = etl_parent_flow,
+               name = 'github-flow',
+               storage = github_block,
+               parameters = {"color": "green", "months": [11], "year": 2020}
+    )
+
+    if __name__ == '__main__':
+       github_dep.apply()
+
+   $ python github_deploy.py
+   => start deployment on the UI
+   $ prefect agent start -q default
+
+   10:19:48.124 | INFO    | Task run 'clean-2c6af9f6-0' - rows: 88605
+
+   => 88605
    
+- Question 5. Email or Slack notifications
+
+  => 514392
+
+- Question 6. Secrets
+
+  from prefect.blocks.system import Secret
+  secret_block = Secret.load("de-camp-secret")
+
+  # Access the stored secret
+  secret_block.get()
+
+  Value
+  => ******** => 8 stars
