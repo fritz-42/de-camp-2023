@@ -1,0 +1,114 @@
+
+- setup
+
+  - modify etl_web_to_gcs_params.py script to load FHV NY Taxi data for
+    all months in year 2019
+
+  - download all requested data as CVS.GZ in to GCS bucket
+
+  $ python etl_web_to_gcs_params.py
+
+
+  - create an _external_ table in Coogle BigQuery
+
+  -- Creating external table referring to gcs path
+  CREATE OR REPLACE EXTERNAL TABLE `mlops-zoom-camp-2023.de_camp_dataset.tripdata_external`
+  OPTIONS (
+    format = 'CSV',
+    uris = ['gs://dtc_data_lake_mlops-zoom-camp-2023/fhv_tripdata_2019-*.csv.gz']
+  );
+
+  -- Create a non partitioned table from external table
+  CREATE OR REPLACE TABLE mlops-zoom-camp-2023.de_camp_dataset.tripdata_non_partitoned AS
+  SELECT * FROM mlops-zoom-camp-2023.de_camp_dataset.tripdata_external;
+
+- Question 1: 
+  What is the count for fhv vehicle records for year 2019?
+
+  SELECT count(*) FROM mlops-zoom-camp-2023.de_camp_dataset.tripdata_external;
+
+  => 43.244.696
+
+- Question 2:
+  Write a query to count the distinct number of affiliated_base_number for the entire dataset on both the tables.
+  What is the estimated amount of data that will be read when this query is executed on the External Table and the Table?
+
+  SELECT COUNT( DISTINCT affiliated_base_number ) AS bases FROM `mlops-zoom-camp-2023.de_camp_dataset.tripdata_external`;
+
+  => This query will process 0 B when run
+  => 3163
+
+  SELECT COUNT( DISTINCT affiliated_base_number ) AS bases FROM `mlops-zoom-camp-2023.de_camp_dataset.tripdata_non_partitoned`;
+
+  => This query will process 317.94 MB when run.
+  => 3163
+
+- Question 3:
+  How many records have both a blank (null) PUlocationID and DOlocationID in the entire dataset?
+
+  SELECT COUNT(*) FROM `mlops-zoom-camp-2023.de_camp_dataset.tripdata_non_partitoned`
+  WHERE PUlocationID IS NULL AND DOlocationID IS NULL;
+
+  => 717.748
+  
+- Question 4:
+  What is the best strategy to optimize the table if query always filter by pickup_datetime and order by affiliated_base_number?
+
+  => WRONG: Cluster on pickup_datetime Cluster on affiliated_base_number
+  => RIGHT: Partition by pickup_datetime Cluster on affiliated_base_number
+
+  CREATE TABLE mlops-zoom-camp-2023.de_camp_dataset.tripdata_clustered
+  CLUSTER BY
+    pickup_datetime, affiliated_base_number
+  AS SELECT * FROM mlops-zoom-camp-2023.de_camp_dataset.tripdata_non_partitoned;
+
+  => This query will process 2.25 GB when run
+
+  -> Try partitioned by pickup_datetime and clustered by affiliated_base_number
+
+  CREATE TABLE mlops-zoom-camp-2023.de_camp_dataset.tripdata_partitioned_clustered
+  PARTITION BY DATE(pickup_datetime)
+  CLUSTER BY affiliated_base_number
+  AS SELECT * FROM mlops-zoom-camp-2023.de_camp_dataset.tripdata_non_partitoned;
+
+  => This query will process 2.25 GB when run
+
+- Question 5:
+  Implement the optimized solution you chose for question 4.
+  Write a query to retrieve the distinct affiliated_base_number between pickup_datetime 2019/03/01 and 2019/03/31 (inclusive).
+  Use the BQ table you created earlier in your from clause and note the estimated bytes.
+  Now change the table in the from clause to the partitioned table you created for question 4 and note
+  the estimated bytes processed. What are these values? Choose the answer which most closely matches.
+
+  - BQ non partitioned table
+  SELECT DISTINCT(affiliated_base_number)
+  FROM mlops-zoom-camp-2023.de_camp_dataset.tripdata_non_partitoned
+  WHERE DATE(pickup_datetime) BETWEEN '2019-03-01' AND '2019-03-31';
+
+  => This query will process 647.87 MB when run
+  => 50 rows
+
+  - BQ clustered table
+  SELECT DISTINCT(affiliated_base_number)
+  FROM mlops-zoom-camp-2023.de_camp_dataset.tripdata_clustered
+  WHERE DATE(pickup_datetime) BETWEEN '2019-03-01' AND '2019-03-31';
+
+  => This query will process 647.87 MB when run.
+
+  - BQ partitioned by pickup time and clustered by  affiliated_base_number table
+  SELECT DISTINCT(affiliated_base_number)
+  FROM mlops-zoom-camp-2023.de_camp_dataset.tripdata_partitioned_clustered
+  WHERE DATE(pickup_datetime) BETWEEN '2019-03-01' AND '2019-03-31';
+
+  => This query will process 23.05 MB when run.
+
+- Question 6:
+  Where is the data stored in the External Table you created?
+
+  => GCP Bucket
+
+- Question 7:
+  It is best practice in Big Query to always cluster your data:
+
+  => False, for small data sizes less than 1TB it is not advisible (metadata overhead is significant)
+
