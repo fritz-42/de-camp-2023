@@ -1,0 +1,11 @@
+version: 2
+
+sources:
+    - name: staging
+      database: mlops-zoom-camp-2023
+      schema: de_camp_dataset
+
+      tables:
+          - name: fhv_tripdata
+          - name: yellow_tripdata
+          - name: green_tripdata
