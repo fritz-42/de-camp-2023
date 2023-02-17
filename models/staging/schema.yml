@@ -3,7 +3,7 @@ version: 2
 sources:
     - name: staging
       database: mlops-zoom-camp-2023
-      schema: de_camp_dataset
+      schema: taxi_tripdata
 
       tables:
           - name: fhv_tripdata
