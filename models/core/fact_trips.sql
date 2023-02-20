@@ -49,9 +49,15 @@ select
     trips_unioned.total_amount, 
     trips_unioned.payment_type, 
     trips_unioned.payment_type_description, 
-    trips_unioned.congestion_surcharge
+    trips_unioned.congestion_surcharge,
+    EXTRACT(YEAR FROM trips_unioned.pickup_datetime) AS pickup_year
 from trips_unioned
 inner join dim_zones as pickup_zone
 on trips_unioned.pickup_locationid = pickup_zone.locationid
 inner join dim_zones as dropoff_zone
 on trips_unioned.dropoff_locationid = dropoff_zone.locationid
+-- filter pickup date time by 2019 and 2020
+WHERE EXTRACT(YEAR FROM trips_unioned.pickup_datetime) BETWEEN 2019 and 2020
+
+
+
