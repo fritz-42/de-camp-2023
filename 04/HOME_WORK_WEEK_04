@@ -1,7 +1,8 @@
 
 - Question 1:
 
-  What is the count of records in the model fact_trips after running all models with the test run variable disabled and filtering for 2019 and 2020 data only (pickup datetime)?
+  What is the count of records in the model fact_trips after running all models with the
+  test run variable disabled and filtering for 2019 and 2020 data only (pickup datetime)?
 
   - changed model fact_trips.sql:
 
@@ -11,7 +12,7 @@
 
   - build
 
-    dbt build --select +fact_trips --var 'is_test_run: false'
+    => dbt build --select +fact_trips --var 'is_test_run: false'
 
     16:03:35  5 of 5 START sql table model dbt_fritz42.fact_trips ............................ [RUN]
     16:03:44  5 of 5 OK created sql table model dbt_fritz42.fact_trips ....................... [CREATE TABLE (113.3m rows, 14.8 GB processed) in 9.47s]
@@ -19,3 +20,34 @@
     -- big query
     SELECT count(*) FROM `mlops-zoom-camp-2023.dbt_fritz42.fact_trips`
     => 113.323.534
+
+- Question 3:
+  What is the count of records in the model stg_fhv_tripdata after running all models with the test run variable disabled (:false)?
+  Create a staging model for the fhv data for 2019 and do not add a deduplication step.
+  Run it via the CLI without limits (is_test_run: false). Filter records with pickup time in year 2019.
+
+   => dbt build --select stg_fhv_tripdata --var 'is_test_run: false'
+   17:27:34  1 of 1 START sql view model dbt_fritz42.stg_fhv_tripdata ....................... [RUN]
+   17:27:35  1 of 1 OK created sql view model dbt_fritz42.stg_fhv_tripdata .................. [CREATE VIEW (0 processed) in 1.04s]
+
+   -- big query
+   SELECT count(*) FROM `mlops-zoom-camp-2023.dbt_fritz42.stg_fhv_tripdata`
+   => 43.244.696
+
+- Question 4:
+
+  What is the count of records in the model fact_fhv_trips after running all dependencies
+  with the test run variable disabled (:false)?
+  Create a core model for the stg_fhv_tripdata joining with dim_zones.
+  Similar to what we've done in fact_trips, keep only records with known pickup and dropoff
+  locations entries for pickup and dropoff locations.
+  Run it via the CLI without limits (is_test_run: false) and filter records with pickup time in year 2019.
+
+  => dbt build --select +fact_fhv_trips --var 'is_test_run: false'
+
+  18:00:00  4 of 4 START sql table model dbt_fritz42.fact_fhv_trips ........................ [RUN]
+  18:00:07  4 of 4 OK created sql table model dbt_fritz42.fact_fhv_trips ................... [CREATE TABLE (23.0m rows, 2.3 GB processed) in 7.07s]
+    
+  -- big query
+  SELECT count(*) FROM `mlops-zoom-camp-2023.dbt_fritz42.fact_fhv_trips`
+  => 22.998.722
