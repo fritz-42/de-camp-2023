@@ -1,0 +1,21 @@
+
+- Question 1:
+
+  What is the count of records in the model fact_trips after running all models with the test run variable disabled and filtering for 2019 and 2020 data only (pickup datetime)?
+
+  - changed model fact_trips.sql:
+
+    ... added WHERE clausel:
+      -- filter pickup date time by 2019 and 2020
+      where EXTRACT(YEAR FROM trips_unioned.pickup_datetime) BETWEEN 2019 and 2020
+
+  - build
+
+    dbt build --select +fact_trips --var 'is_test_run: false'
+
+    16:03:35  5 of 5 START sql table model dbt_fritz42.fact_trips ............................ [RUN]
+    16:03:44  5 of 5 OK created sql table model dbt_fritz42.fact_trips ....................... [CREATE TABLE (113.3m rows, 14.8 GB processed) in 9.47s]
+
+    -- big query
+    SELECT count(*) FROM `mlops-zoom-camp-2023.dbt_fritz42.fact_trips`
+    => 113.323.534
